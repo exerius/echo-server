@@ -1,17 +1,46 @@
-import socket  # импорт библиотеки сокетов
+import socket
 
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # создание сокета
-self_ip = "127.0.0.1"  # свой ip
-self_port = 9090  # свой порт
-addrs = []  # массив с адресами клиентов
-sock.bind((self_ip, self_port))
+
+def connect(port):
+	try:
+		sock.bind(("", port))
+		print(f"Подключился к порту {port}")
+	except OSError:
+		connect(port+1)
+
+with open("log.txt", "a") as file:
+	file.write("Сервер запущен\n")
+sock = socket.socket()
+try:
+	port = int(input("К какому порту подключаться"))
+except ValueError:
+	port = 9090
+connect(port)
+sock.listen(0)
+with open("log.txt", "a") as file:
+	file.write("Начато прослушивание порта\n")
+conn, addr = sock.accept()
+with open("log.txt", "a") as file:
+	file.write("Клиент подключен\n")
+msg = ''
+
 while True:
-	data, addr = sock.recvfrom(1024)  # получаем сообщение
-	if addr not in addrs:  # если столкнулись с адресом впервые, добавляем его в список
-		addrs.append(addr)
-	decoded = data.decode()  # расшифровка сообщения
-	if decoded != "first_try_connection":
-		for i in addrs:  # отсылаем присланное сообщение всем известным клиентам
-			tosend = ("client, with ip= "+str(addr[0])+"port= "+str(addr[1])+"said:  "+decoded).encode()
-			sock.sendto(tosend, i)
-
+	data = conn.recv(1024)
+	with open("log.txt", "a") as file:
+		file.write("Приняты данные от клиента\n")
+	decoded = data.decode()
+	if decoded == 'exit':
+		with open("log.txt", "a") as file:
+			file.write("Соединение разорвано\n")
+		conn, addr = sock.accept()
+		continue_listening = input("Продолжить прослушивание порта?")
+		if continue_listening == "no":
+			conn.close()
+			break
+	else:
+		msg += data.decode()
+		conn.send(data)
+		with open("log.txt", "a") as file:
+			file.write("Клиенту отправлены данные\n")
+with open("log.txt", "a") as file:
+	file.write("Сервер остановлен")

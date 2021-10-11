@@ -1,28 +1,27 @@
-import socket  # импорт библиотеки сокетов
-from threading import Thread  # импорт потока для многопоточности
+import ipaddress
+import socket
+from ipaddress import ip_address
 
-
-def listenig():  # функция прослушки сервера
-    while True:
-        try:
-            data = sock.recv(1024)
-        except:
-            continue
-        else:
-            print(data.decode())
-    sock.close()
-
-
-def sending():  # функция отправки сообщений на сервер
-    while True:
-        line = input()
-        sock.sendto(line.encode(), server_addr)
-
-
-sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # создание сокета
-server_addr = (input("Введите ip сервера"), int(input("Введите порт сервера")))
-sock.sendto(b"first_try_connection", server_addr)
-thread1 = Thread(target=listenig)  # один поток слушает
-thread2 = Thread(target=sending)  # а другой -- пишет
-thread1.start()
-thread2.start()
+sock = socket.socket()
+sock.setblocking(1)
+try:
+    ip = ipaddress.ip_address(input("К какому ip подключаться?"))
+except ValueError:
+    ip = "127.0.0.1"
+try:
+    port = int(input("К какому порту подключаться"))
+except ValueError:
+    port = 9090
+sock.connect((ip, port))
+print("Соединение установлено")
+while True:
+    line = input()
+    sock.send(line.encode())
+    print("Данные отправлены")
+    if line == "exit":
+        print("Соединение разорвано")
+        break
+    data = sock.recv(1024)
+    print("Данные получены:")
+    print(data.decode())
+sock.close()
